@@ -1,0 +1,95 @@
+
+EZ Memcache is a PHP extension designed around ease and performance.
+The idea was that most memcache client libraries are going in the
+direction of features, and not in the direction of performance. I've
+seen many solutions to performance, and antecdotes as to how one 
+should actually utilize memcache to make it useful in your stupid
+WEB 2.0 environment.
+
+This library is the culmination of what I have learned. The
+fundamental concepts this memcache client abides by are these:
+
+1) Implement what is commonly used.
+2) Leave out what is not used.
+3) Implement it simply.
+4) Implement it well.
+5) Chose performance over features.
+
+I have decided that key distribution is an entirely different problem
+than the problem of actually getting and setting key/value pairs. And
+every company (horrible WEB2.0 companies are the primary users of
+memcache) wants a lot more control over key distribution than what
+is offered by any clients, and therefore it is most prudent to leave it
+out and instead offer up a basic memcache library that is very easy
+to build a distributed key-value system upon with reduced clutter.
+
+People like UDP.  For some reason, UDP has survived all this time. I
+had personally thought UDP was pretty stupid, but I did not realize
+the performance trade-off made by choosing stateful reliable flow control
+was really large enough to make any difference in normal use when I was
+younger. But I did not at all expect these stupid gigantic international
+web applications to be developed that handled millions of stupid users
+and allowed them to do millions of stupid things a second. I thought of
+UDP as relegated to RIP routing, DNS, chargen and time, and other useless
+ancient UNIX things. I see the use in UDP now, and I understand why it
+is important to support UDP.  No other public memcache client offers a
+useful UDP interface.
+
+This client does not offer persistent TCP connections. The idea is
+that this is a client designed for performance, and when the objects
+you are retrieving are large enough to warrant being fetched over TCP,
+then the additional overhead required to establish and maintain a TCP
+connection is not significant.
+
+Not many people actually realize that Memcached does not infact support
+multi-packet UDP, and therefore when a packet exceeds the datalink
+frame-size (often ethernet which is approximately 1400 bytes) then
+the UDP packet is fragemented at the IP layer via IP fragementation.
+If you follow the spec and use memcache multi-packet UDP support,
+then the Memcached server will bitch.  But since no public clients
+actually really support UDP anyways, you dont come across this issue.
+This creates a number of other issues.  Any UDP request over 1400
+bytes requires defragmentation, kernel-level state tracking and stuff,
+which inheriently is better left up to TCP, as the more you fragment
+a UDP packet, the more likely you will have unrecoverable packet loss.
+
+Simply put, TCP makes sense for big objects and UDP makes sense
+for little objects. And I assert that big objects dont really benefit
+that much from persistent connetions in the first place (albiet,
+they do infact benefit, ever so slightly). I've opted instead
+to not currently support them. In the future, I may, without connection
+persistence, if they do not add too much complexity. I really wanna keep
+this E-Z.
+
+Here is some configuration help. The following lines can be added to php.ini
+The default values for the ezmemcache configuration are specified here so
+that you know what they are if you choose to omit them.
+
+   extension=ezmemcache.so
+
+   [ezmemcache]
+   default.port=11211
+   payload.max=1400
+
+Building this is just like building any other extension.
+
+   phpize
+   ./configure
+   make
+   sudo make install
+
+Go ahead and review example.php for samples of how to work it, and also run
+the example code and make sure the tests look like they all pass.
+
+   php ./example.php
+
+Also, please look at example.php because it contains a very short and very
+clear example of how to use each of the ezmemcache_* functions from php.
+Please be aware also that the server address field of the functions currently
+only supports IP address. In the name of performance, it should be clear to
+you that by specifying IP addresses, you will reduce the cost incurred by
+DNS lookups.
+
+   Thank You,
+      Dina Marie Lolich
+      <dlolich@modron.net>
